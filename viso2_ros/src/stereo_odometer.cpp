@@ -53,7 +53,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
  public:
   typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 
-  StereoOdometer(const std::string& transport)
+  explicit StereoOdometer(const std::string& transport)
       : StereoProcessor(transport),
         OdometerBase(),
         got_lost_(false),
@@ -80,7 +80,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     // read calibration info from camera info message
     // to fill remaining parameters
     image_geometry::StereoCameraModel model;
-    model.fromCameraInfo(*l_info_msg, *r_info_msg);
+    model.fromCameraInfo(l_info_msg, r_info_msg);
     visual_odometer_params_.base = model.baseline();
     visual_odometer_params_.calib.f = model.left().fx();
     visual_odometer_params_.calib.cu = model.left().cx();
@@ -90,12 +90,11 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
       setSensorFrameId(l_info_msg->header.frame_id);
     ROS_INFO_STREAM(
         "Initialized libviso2 stereo odometry "
-        "with the following parameters:"
-        << std::endl << visual_odometer_params_
+        "with the following parameters:\n"
+        << visual_odometer_params_
         << "  ref_frame_change_method = " << ref_frame_change_method_
-        << std::endl << "  ref_frame_motion_threshold = "
-        << ref_frame_motion_threshold_ << std::endl
-        << "  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_);
+        << "\n  ref_frame_motion_threshold = " << ref_frame_motion_threshold_
+        << "\n  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_);
   }
 
   void imageCallback(const sensor_msgs::ImageConstPtr& l_image_msg,

@@ -51,7 +51,7 @@ protected:
       const sensor_msgs::CameraInfoConstPtr& info_msg)
   {
     ros::WallTime start_time = ros::WallTime::now();
- 
+
     bool first_run = false;
     // create odometer if not exists
     if (!visual_odometer_)
@@ -67,7 +67,7 @@ protected:
       visual_odometer_.reset(new VisualOdometryMono(visual_odometer_params_));
       if (image_msg->header.frame_id != "") setSensorFrameId(image_msg->header.frame_id);
       ROS_INFO_STREAM("Initialized libviso2 mono odometry "
-                      "with the following parameters:" << std::endl << 
+                      "with the following parameters:" << std::endl <<
                       visual_odometer_params_);
     }
 
@@ -105,7 +105,7 @@ protected:
       {
         replace_ = false;
         Matrix camera_motion = Matrix::inv(visual_odometer_->getMotion());
-        ROS_DEBUG("Found %i matches with %i inliers.", 
+        ROS_DEBUG("Found %i matches with %i inliers.",
                   visual_odometer_->getNumberOfMatches(),
                   visual_odometer_->getNumberOfInliers());
         ROS_DEBUG_STREAM("libviso2 returned the following motion:\n" << camera_motion);
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 
   std::string transport = argc > 1 ? argv[1] : "raw";
   viso2_ros::MonoOdometer odometer(transport);
-  
+
   ros::spin();
   return 0;
 }

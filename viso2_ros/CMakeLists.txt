@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(viso2_ros)
 
-find_package(catkin REQUIRED COMPONENTS 
+add_definitions(-Wall -std=c++11)
+find_package(catkin REQUIRED COMPONENTS
     libviso2
     roscpp
     sensor_msgs

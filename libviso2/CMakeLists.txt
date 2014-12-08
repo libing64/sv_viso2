@@ -3,7 +3,7 @@ project(libviso2)
 
 find_package(catkin REQUIRED)
 
-add_definitions(-msse3)
+add_definitions(-msse3 -std=c++11 -Wall)
 
 add_library(viso2
     libviso2/src/filter.cpp

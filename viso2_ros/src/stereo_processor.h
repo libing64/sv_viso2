@@ -115,7 +115,7 @@ class StereoProcessor {
     const std::string left_image_topic =
         ros::names::append("left", "image_rect");
     const std::string right_image_topic =
-        ros::names::append("left", "image_rect");
+        ros::names::append("right", "image_rect");
     const std::string left_cinfo_topic =
         ros::names::append("left", "camera_info");
     const std::string right_cinfo_topic =

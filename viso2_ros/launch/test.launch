@@ -1,5 +1,6 @@
 <launch>
     <!-- Arguments -->
+    <arg name="test" default="true"/>
     <arg name="output" default="screen"/>
     <arg name="bagfile" default="/home/chao/Workspace/bag/steadicam_vicon.bag"/>
     <arg name="camera" default="stereo"/>
@@ -8,8 +9,8 @@
     <param name="/use_sim_time" value="true"/>
 
     <!-- rosbag -->
-    <node pkg="rosbag" type="play" name="player" args="--clock -r 0.5 $(arg bagfile)"
-        output="log">
+    <node if="$(arg test)" pkg="rosbag" type="play" name="player"
+        args="--clock -r 0.5 $(arg bagfile)" output="log">
     </node>
 
     <!-- Run the ROS package stereo_image_proc -->

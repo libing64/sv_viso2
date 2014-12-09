@@ -68,7 +68,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     local_nh.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_,
                    150);
 
-    point_cloud_pub_ = local_nh.advertise<PointCloud>("point_cloud", 1);
+    point_cloud_pub_ = local_nh.advertise<PointCloud>("cloud2", 1);
     info_pub_ = local_nh.advertise<VisoInfo>("info", 1);
 
     reference_motion_ = Matrix::eye(4);

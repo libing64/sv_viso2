@@ -104,14 +104,6 @@ class StereoProcessor {
 
     // Resolve topic names
     ros::NodeHandle nh;
-    //    std::string stereo_ns = nh.resolveName("stereo");
-    //    std::string left_topic = ros::names::clean(stereo_ns + "/left/" +
-    // nh.resolveName("image"));
-    //    std::string right_topic = ros::names::clean(stereo_ns + "/right/" +
-    // nh.resolveName("image"));
-
-    //    std::string left_info_topic = stereo_ns + "/left/camera_info";
-    //    std::string right_info_topic = stereo_ns + "/right/camera_info";
     const std::string left_image_topic =
         ros::names::append("left", "image_rect");
     const std::string right_image_topic =

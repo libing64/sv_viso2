@@ -67,7 +67,7 @@ void loadParams(const ros::NodeHandle& local_nh,
 }  // end of namespace
 
 std::ostream& operator<<(std::ostream& out, const Matcher::parameters& params) {
-  out << "\n  nms_n                  = " << params.nms_n;
+  out << "  nms_n                  = " << params.nms_n;
   out << "\n  nms_tau                = " << params.nms_tau;
   out << "\n  match_binsize          = " << params.match_binsize;
   out << "\n  match_radius           = " << params.match_radius;
@@ -82,17 +82,17 @@ std::ostream& operator<<(std::ostream& out, const Matcher::parameters& params) {
 
 std::ostream& operator<<(std::ostream& out,
                          const VisualOdometry::calibration& calibration) {
-  out << "  f  = " << calibration.f << std::endl;
-  out << "  cu = " << calibration.cu << std::endl;
-  out << "  cv = " << calibration.cv << std::endl;
+  out << "  f  = " << calibration.f;
+  out << "\n  cu = " << calibration.cu;
+  out << "\n  cv = " << calibration.cv << std::endl;
   return out;
 }
 
 std::ostream& operator<<(std::ostream& out,
                          const VisualOdometry::bucketing& bucketing) {
-  out << "  max_features  = " << bucketing.max_features << std::endl;
-  out << "  bucket_width  = " << bucketing.bucket_width << std::endl;
-  out << "  bucket_height = " << bucketing.bucket_height << std::endl;
+  out << "  max_features  = " << bucketing.max_features;
+  out << "\n  bucket_width  = " << bucketing.bucket_width;
+  out << "\n  bucket_height = " << bucketing.bucket_height << std::endl;
   return out;
 }
 

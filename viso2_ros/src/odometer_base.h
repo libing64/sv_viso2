@@ -4,6 +4,7 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <std_srvs/Empty.h>
 
 #include <tf/transform_listener.h>
@@ -20,8 +21,7 @@ class OdometerBase {
 
  private:
   // publisher
-  ros::Publisher odom_pub_;
-  ros::Publisher pose_pub_;
+  ros::Publisher odom_pub_, pose_pub_, pose_cov_pub_;
 
   ros::ServiceServer reset_service_;
 
@@ -45,13 +45,13 @@ class OdometerBase {
  public:
   OdometerBase() {
     // Read local parameters
-    ros::NodeHandle local_nh("~");
+    ros::NodeHandle pnh("~");
 
-    local_nh.param("odom_frame_id", odom_frame_id_, std::string("odom"));
-    local_nh.param("base_link_frame_id", base_link_frame_id_,
-                   std::string("base_link"));
-    local_nh.param("sensor_frame_id", sensor_frame_id_, std::string("camera"));
-    local_nh.param("publish_tf", publish_tf_, true);
+    pnh.param("odom_frame_id", odom_frame_id_, std::string("odom"));
+    pnh.param("base_link_frame_id", base_link_frame_id_,
+              std::string("base_link"));
+    pnh.param("sensor_frame_id", sensor_frame_id_, std::string("camera"));
+    pnh.param("publish_tf", publish_tf_, true);
 
     ROS_INFO_STREAM(
         "Basic Odometer Settings:"
@@ -60,11 +60,13 @@ class OdometerBase {
         << "  publish_tf         = " << (publish_tf_ ? "true" : "false"));
 
     // advertise
-    odom_pub_ = local_nh.advertise<nav_msgs::Odometry>("odometry", 1);
-    pose_pub_ = local_nh.advertise<geometry_msgs::PoseStamped>("pose", 1);
+    odom_pub_ = pnh.advertise<nav_msgs::Odometry>("odometry", 1);
+    pose_pub_ = pnh.advertise<geometry_msgs::PoseStamped>("pose", 1);
+    pose_cov_pub_ =
+        pnh.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose_cov", 1);
 
     reset_service_ =
-        local_nh.advertiseService("reset_pose", &OdometerBase::resetPose, this);
+        pnh.advertiseService("reset_pose", &OdometerBase::resetPose, this);
 
     integrated_pose_.setIdentity();
 
@@ -155,12 +157,17 @@ class OdometerBase {
     odometry_msg.twist.covariance = twist_covariance_;
     odom_pub_.publish(odometry_msg);
 
+    // Publish pose stamped
     geometry_msgs::PoseStamped pose_msg;
-    pose_msg.header.stamp = odometry_msg.header.stamp;
-    pose_msg.header.frame_id = odometry_msg.header.frame_id;
+    pose_msg.header = odometry_msg.header;
     pose_msg.pose = odometry_msg.pose.pose;
-
     pose_pub_.publish(pose_msg);
+
+    // Publish pose with covariance stamped
+    geometry_msgs::PoseWithCovarianceStamped pose_cov_msg;
+    pose_cov_msg.header = odometry_msg.header;
+    pose_cov_msg.pose = odometry_msg.pose;
+    pose_cov_pub_.publish(pose_cov_msg);
 
     if (publish_tf_) {
       tf_broadcaster_.sendTransform(tf::StampedTransform(
@@ -176,6 +183,6 @@ class OdometerBase {
   }
 };
 
-}  // end of namespace
+}  // viso2_ros
 
 #endif

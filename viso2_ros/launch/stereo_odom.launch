@@ -1,0 +1,16 @@
+<launch>
+    <arg name="output" default="screen"/>
+    <arg name="stereo" default="stereo"/>
+
+    <arg name="publish_tf" default="true"/>
+    <arg name="max_features" default="2"/>
+    <arg name="visualize_matches" default="false"/>
+
+    <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer"
+        output="$(arg output)" ns="$(arg stereo)">
+        <param name="max_features" type="int" value="$(arg max_features)"/>
+        <param name="publish_tf" type="bool" value="$(arg publish_tf)"/>
+        <param name="visualize_matches" type="bool" value="$(arg visualize_matches)"/>
+        <remap from="~odometry" to="odom"/>
+    </node>
+</launch>

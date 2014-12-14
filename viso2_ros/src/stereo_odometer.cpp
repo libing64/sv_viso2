@@ -38,6 +38,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   ros::Publisher point_cloud_pub_;
   ros::Publisher info_pub_;
 
+  bool visualize_matches_;
   bool got_lost_;
 
   // change reference frame method. 0, 1 or 2. 0 means allways change. 1 and 2
@@ -49,6 +50,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   int ref_frame_inlier_threshold_;  // method 2. Change the reference frame if
                                     // the number of inliers is low
   Matrix reference_motion_;
+  cv::Mat display_;
 
  public:
   typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
@@ -59,17 +61,16 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         got_lost_(false),
         change_reference_frame_(false) {
     // Read local parameters
-    ros::NodeHandle local_nh("~");
-    odometry_params::loadParams(local_nh, visual_odometer_params_);
+    ros::NodeHandle pnh("~");
+    odometry_params::loadParams(pnh, visual_odometer_params_);
 
-    local_nh.param("ref_frame_change_method", ref_frame_change_method_, 0);
-    local_nh.param("ref_frame_motion_threshold", ref_frame_motion_threshold_,
-                   5.0);
-    local_nh.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_,
-                   150);
+    pnh.param("ref_frame_change_method", ref_frame_change_method_, 0);
+    pnh.param("ref_frame_motion_threshold", ref_frame_motion_threshold_, 5.0);
+    pnh.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_, 150);
+    pnh.param("visualize_matches", visualize_matches_, false);
 
-    point_cloud_pub_ = local_nh.advertise<PointCloud>("cloud2", 1);
-    info_pub_ = local_nh.advertise<VisoInfo>("info", 1);
+    point_cloud_pub_ = pnh.advertise<PointCloud>("cloud2", 1);
+    info_pub_ = pnh.advertise<VisoInfo>("info", 1);
 
     reference_motion_ = Matrix::eye(4);
   }
@@ -94,7 +95,8 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         << visual_odometer_params_
         << "  ref_frame_change_method = " << ref_frame_change_method_
         << "\n  ref_frame_motion_threshold = " << ref_frame_motion_threshold_
-        << "\n  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_);
+        << "\n  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_
+        << "\n  visualize matches = " << std::boolalpha << visualize_matches_);
   }
 
   void imageCallback(const sensor_msgs::ImageConstPtr& l_image_msg,
@@ -126,7 +128,8 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     ROS_ASSERT(l_image_msg->width == r_image_msg->width);
     ROS_ASSERT(l_image_msg->height == r_image_msg->height);
 
-    int32_t dims[] = {l_image_msg->width, l_image_msg->height, l_step};
+    int32_t dims[] = {static_cast<int32_t>(l_image_msg->width),
+                      static_cast<int32_t>(l_image_msg->height), l_step};
     // on first run or when odometer got lost, only feed the odometer with
     // images without retrieving data
     if (first_run || got_lost_) {
@@ -177,6 +180,12 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
                                       visual_odometer_->getMatches(),
                                       visual_odometer_->getInlierIndices());
         }
+
+        if (visualize_matches_) {
+          visualizeMatches(l_cv_ptr->image, r_cv_ptr->image,
+                           visual_odometer_->getMatches(),
+                           visual_odometer_->getInlierIndices());
+        }
       } else {
         setPoseCovariance(BAD_COVARIANCE);
         setTwistCovariance(BAD_COVARIANCE);
@@ -214,8 +223,9 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
             change_reference_frame_ = false;
         }
 
-      } else
+      } else {
         change_reference_frame_ = false;
+      }
 
       if (!change_reference_frame_)
         ROS_DEBUG_STREAM("Changing reference frame");
@@ -241,6 +251,32 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
       total_flow += sqrt(x_diff * x_diff + y_diff * y_diff);
     }
     return total_flow / matches.size();
+  }
+
+  void visualizeMatches(const cv::Mat& l_image, const cv::Mat& r_image,
+                        const std::vector<Matcher::p_match>& matches,
+                        const std::vector<int32_t>& inlier_indices) {
+    static auto n_rows = l_image.rows;
+    static auto n_cols = l_image.cols;
+    cv::namedWindow("matches",
+                    CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
+    if (display_.empty()) display_.create(n_rows, n_cols * 2, CV_8UC3);
+    // Convert grayscale to color and blend
+    cv::Mat l_color, r_color;
+    cv::cvtColor(l_image, l_color, CV_GRAY2BGR);
+    cv::cvtColor(r_image, r_color, CV_GRAY2BGR);
+    cv::addWeighted(l_color, 0.7, r_color, 0.3, 0.0, display_);
+
+    for (const auto& i : inlier_indices) {
+      const Matcher::p_match& match = matches[i];
+      cv::Point2f l_uv(match.u1p, match.v1p);
+      cv::Point2f r_uv(match.u1c, match.v1c);
+      cv::circle(display_, l_uv, 2, CV_RGB(255, 0, 0), -1, CV_AA);
+      cv::line(display_, l_uv, r_uv, CV_RGB(255, 0, 0), 1, CV_AA);
+    }
+    // Display image
+    cv::imshow("matches", display_);
+    cv::waitKey(1);
   }
 
   void computeAndPublishPointCloud(
@@ -293,18 +329,6 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "stereo_odometer");
-  //  if (ros::names::remap("stereo") == "stereo") {
-  //    ROS_WARN(
-  //        "'stereo' has not been remapped! Example command-line usage:\n"
-  //        "\t$ rosrun viso2_ros stereo_odometer stereo:=narrow_stereo "
-  //        "image:=image_rect");
-  //  }
-  //  if (ros::names::remap("image").find("rect") == std::string::npos) {
-  //    ROS_WARN(
-  //        "stereo_odometer needs rectified input images. The used image "
-  //        "topic is '%s'. Are you sure the images are rectified?",
-  //        ros::names::remap("image").c_str());
-  //  }
 
   std::string transport = argc > 1 ? argv[1] : "raw";
   viso2_ros::StereoOdometer odometer(transport);

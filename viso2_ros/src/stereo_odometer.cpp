@@ -258,8 +258,12 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
                         const std::vector<int32_t>& inlier_indices,
                         const ros::WallTime& start_time) {
     const auto n_rows = l_image.rows;
-    cv::namedWindow("matches",
-                    CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
+    if (display_.empty()) {
+      cv::namedWindow("matches",
+                      CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
+      cv::setWindowProperty("matches", CV_WND_PROP_FULLSCREEN,
+                            CV_WINDOW_FULLSCREEN);
+    }
     // Convert grayscale to color and blend
     cv::cvtColor(l_image, display_, CV_GRAY2BGR);
 

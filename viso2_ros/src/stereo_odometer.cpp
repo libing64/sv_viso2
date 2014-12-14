@@ -18,6 +18,8 @@
 
 namespace viso2_ros {
 
+cv::Scalar disparityToCvScalar(double d);
+
 // some arbitrary values (0.1m^2 linear cov. 10deg^2. angular cov.)
 static const boost::array<double, 36> STANDARD_POSE_COVARIANCE = {
     {0.1, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0.17,
@@ -184,7 +186,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         if (visualize_matches_) {
           visualizeMatches(l_cv_ptr->image, r_cv_ptr->image,
                            visual_odometer_->getMatches(),
-                           visual_odometer_->getInlierIndices());
+                           visual_odometer_->getInlierIndices(), start_time);
         }
       } else {
         setPoseCovariance(BAD_COVARIANCE);
@@ -255,7 +257,8 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
 
   void visualizeMatches(const cv::Mat& l_image, const cv::Mat& r_image,
                         const std::vector<Matcher::p_match>& matches,
-                        const std::vector<int32_t>& inlier_indices) {
+                        const std::vector<int32_t>& inlier_indices,
+                        const ros::WallTime& start_time) {
     static auto n_rows = l_image.rows;
     static auto n_cols = l_image.cols;
     cv::namedWindow("matches",
@@ -269,11 +272,19 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
 
     for (const auto& i : inlier_indices) {
       const Matcher::p_match& match = matches[i];
-      cv::Point2f l_uv(match.u1p, match.v1p);
-      cv::Point2f r_uv(match.u1c, match.v1c);
-      cv::circle(display_, l_uv, 2, CV_RGB(255, 0, 0), -1, CV_AA);
-      cv::line(display_, l_uv, r_uv, CV_RGB(255, 0, 0), 1, CV_AA);
+      const cv::Point2f l_uv(match.u1p, match.v1p);
+      const cv::Point2f r_uv(match.u1c, match.v1c);
+      const auto color = disparityToCvScalar(match.u1c - match.u2c);
+      cv::circle(display_, l_uv, 2, color, -1, CV_AA);
+      cv::line(display_, l_uv, r_uv, color, 1, CV_AA);
     }
+    const auto time_used =
+        static_cast<int>((ros::WallTime::now() - start_time).toSec() * 1000);
+    cv::putText(display_, std::to_string(time_used) + "ms", cv::Point2f(15, 30),
+                cv::FONT_HERSHEY_SIMPLEX, 1, CV_RGB(0, 0, 255), 2, CV_AA);
+    cv::putText(display_, std::to_string(inlier_indices.size()),
+                cv::Point2f(15, n_rows - 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+                CV_RGB(0, 0, 255), 2, CV_AA);
     // Display image
     cv::imshow("matches", display_);
     cv::waitKey(1);
@@ -324,6 +335,12 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     }
   }
 };
+
+cv::Scalar disparityToCvScalar(double d) {
+  const static double dmax = 64;
+  d = std::max(0.0, std::min(d, dmax));
+  return cv::Scalar(0, 255 * (dmax - d) / dmax, 255 * d / dmax);
+}
 
 }  // end of namespace
 

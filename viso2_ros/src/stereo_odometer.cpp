@@ -184,8 +184,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         }
 
         if (visualize_matches_) {
-          visualizeMatches(l_cv_ptr->image, r_cv_ptr->image,
-                           visual_odometer_->getMatches(),
+          visualizeMatches(l_cv_ptr->image, visual_odometer_->getMatches(),
                            visual_odometer_->getInlierIndices(), start_time);
         }
       } else {
@@ -224,7 +223,6 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
           default:
             change_reference_frame_ = false;
         }
-
       } else {
         change_reference_frame_ = false;
       }
@@ -255,20 +253,15 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     return total_flow / matches.size();
   }
 
-  void visualizeMatches(const cv::Mat& l_image, const cv::Mat& r_image,
+  void visualizeMatches(const cv::Mat& l_image,
                         const std::vector<Matcher::p_match>& matches,
                         const std::vector<int32_t>& inlier_indices,
                         const ros::WallTime& start_time) {
-    static auto n_rows = l_image.rows;
-    static auto n_cols = l_image.cols;
+    const auto n_rows = l_image.rows;
     cv::namedWindow("matches",
                     CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
-    if (display_.empty()) display_.create(n_rows, n_cols * 2, CV_8UC3);
     // Convert grayscale to color and blend
-    cv::Mat l_color, r_color;
-    cv::cvtColor(l_image, l_color, CV_GRAY2BGR);
-    cv::cvtColor(r_image, r_color, CV_GRAY2BGR);
-    cv::addWeighted(l_color, 0.7, r_color, 0.3, 0.0, display_);
+    cv::cvtColor(l_image, display_, CV_GRAY2BGR);
 
     for (const auto& i : inlier_indices) {
       const Matcher::p_match& match = matches[i];
@@ -280,11 +273,11 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     }
     const auto time_used =
         static_cast<int>((ros::WallTime::now() - start_time).toSec() * 1000);
-    cv::putText(display_, std::to_string(time_used) + "ms", cv::Point2f(15, 30),
-                cv::FONT_HERSHEY_SIMPLEX, 1, CV_RGB(0, 0, 255), 2, CV_AA);
+    cv::putText(display_, std::to_string(time_used) + "ms", cv::Point2f(15, 40),
+                cv::FONT_HERSHEY_SIMPLEX, 1, CV_RGB(0, 255, 255), 2, CV_AA);
     cv::putText(display_, std::to_string(inlier_indices.size()),
-                cv::Point2f(15, n_rows - 30), cv::FONT_HERSHEY_SIMPLEX, 1,
-                CV_RGB(0, 0, 255), 2, CV_AA);
+                cv::Point2f(15, n_rows - 20), cv::FONT_HERSHEY_SIMPLEX, 1,
+                CV_RGB(0, 255, 255), 2, CV_AA);
     // Display image
     cv::imshow("matches", display_);
     cv::waitKey(1);

@@ -18,6 +18,8 @@
 
 namespace viso2_ros {
 
+using namespace sensor_msgs;
+
 cv::Scalar disparityToCvScalar(double d);
 
 // some arbitrary values (0.1m^2 linear cov. 10deg^2. angular cov.)
@@ -77,8 +79,9 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   }
 
  protected:
-  void initOdometer(const sensor_msgs::CameraInfoConstPtr& l_info_msg,
-                    const sensor_msgs::CameraInfoConstPtr& r_info_msg) {
+  void initOdometer(const CameraInfoConstPtr& l_info_msg,
+                    const CameraInfoConstPtr& r_info_msg) {
+    setSensorFrameId(l_info_msg->header.frame_id);
     // read calibration info from camera info message
     // to fill remaining parameters
     image_geometry::StereoCameraModel model;
@@ -100,10 +103,10 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         << "\n  visualize matches = " << std::boolalpha << vis_matches_);
   }
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& l_image_msg,
-                     const sensor_msgs::ImageConstPtr& r_image_msg,
-                     const sensor_msgs::CameraInfoConstPtr& l_cinfo_msg,
-                     const sensor_msgs::CameraInfoConstPtr& r_cinfo_msg) {
+  void imageCallback(const ImageConstPtr& l_image_msg,
+                     const ImageConstPtr& r_image_msg,
+                     const CameraInfoConstPtr& l_cinfo_msg,
+                     const CameraInfoConstPtr& r_cinfo_msg) {
     ros::WallTime start_time = ros::WallTime::now();
     bool first_run = false;
     // create odometer if not exists
@@ -116,12 +119,10 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     uint8_t* l_image_data, *r_image_data;
     int l_step, r_step;
     cv_bridge::CvImageConstPtr l_cv_ptr, r_cv_ptr;
-    l_cv_ptr =
-        cv_bridge::toCvShare(l_image_msg, sensor_msgs::image_encodings::MONO8);
+    l_cv_ptr = cv_bridge::toCvShare(l_image_msg, image_encodings::MONO8);
     l_image_data = l_cv_ptr->image.data;
     l_step = l_cv_ptr->image.step[0];
-    r_cv_ptr =
-        cv_bridge::toCvShare(r_image_msg, sensor_msgs::image_encodings::MONO8);
+    r_cv_ptr = cv_bridge::toCvShare(r_image_msg, image_encodings::MONO8);
     r_image_data = r_cv_ptr->image.data;
     r_step = r_cv_ptr->image.step[0];
 
@@ -285,16 +286,14 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     cv::waitKey(1);
   }
 
-  void computeAndPublishPointCloud(
-      const sensor_msgs::CameraInfoConstPtr& l_info_msg,
-      const sensor_msgs::ImageConstPtr& l_image_msg,
-      const sensor_msgs::CameraInfoConstPtr& r_info_msg,
-      const std::vector<Matcher::p_match>& matches,
-      const std::vector<int32_t>& inlier_indices) {
+  void computeAndPublishPointCloud(const CameraInfoConstPtr& l_info_msg,
+                                   const ImageConstPtr& l_image_msg,
+                                   const CameraInfoConstPtr& r_info_msg,
+                                   const std::vector<Matcher::p_match>& matches,
+                                   const std::vector<int32_t>& inlier_indices) {
     try {
       cv_bridge::CvImageConstPtr cv_ptr;
-      cv_ptr =
-          cv_bridge::toCvShare(l_image_msg, sensor_msgs::image_encodings::RGB8);
+      cv_ptr = cv_bridge::toCvShare(l_image_msg, image_encodings::RGB8);
       // read calibration info from camera info message
       image_geometry::StereoCameraModel model;
       model.fromCameraInfo(*l_info_msg, *r_info_msg);

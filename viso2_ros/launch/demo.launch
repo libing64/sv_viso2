@@ -11,7 +11,7 @@
 
   <arg name="output" default="screen"/>
 
-  <arg name="pub_tf" default="true"/>
+  <arg name="pub_tf" default="false"/>
   <arg name="max_features" default="2"/>
   <arg name="vis_matches" default="true"/>
 
@@ -30,15 +30,34 @@
     <!-- Run the viso2_ros package -->
   <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer"
     output="$(arg output)" ns="$(arg stereo)">
+    <param name="odom_frame_id" type="string" value="world"/>
     <param name="max_features" type="int" value="$(arg max_features)"/>
     <param name="pub_tf" type="bool" value="$(arg pub_tf)"/>
     <param name="vis_matches" type="bool" value="$(arg vis_matches)"/>
     <param name="pub_pose" type="bool" value="true"/>
     <param name="pub_odom" type="bool" value="true"/>
+
     <remap from="~odometry" to="odom"/>
+    <remap from="~pose" to="pose"/>
     <remap from="~left" to="$(arg left)"/>
     <remap from="~right" to="$(arg right)"/>
     <remap from="~left/image" to="$(arg left)/$(arg image)"/>
     <remap from="~right/image" to="$(arg right)/$(arg image)"/>
+  </node>
+
+  <include file="$(find galt_setup)/launch/process/process_base.launch">
+    <arg name="profile" value="steadicam/v4"/>
+    <arg name="vicon" value="true"/>
+  </include>
+
+  <node
+    name="vo_test"
+    pkg="vo_test"
+    type="vo_test"
+    output="screen">
+    <param name="calculate_scale" type="bool" value="false"/>
+
+    <remap from="~vision_odom" to="/stereo/odom"/>
+    <remap from="~vicon_odom" to="/vicon/antares/odom"/>
   </node>
 </launch>

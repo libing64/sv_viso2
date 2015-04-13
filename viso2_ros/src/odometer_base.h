@@ -18,7 +18,6 @@ namespace viso2_ros {
  * sensor. Sensors that measure velocities cannot be used.
  */
 class OdometerBase {
-
  private:
   // publisher
   ros::Publisher odom_pub_, pose_pub_, pose_cov_pub_;
@@ -51,7 +50,7 @@ class OdometerBase {
     pnh.param("base_link_frame_id", base_link_frame_id_,
               std::string("base_link"));
     pnh.param("sensor_frame_id", sensor_frame_id_, std::string("camera"));
-    pnh.param("publish_tf", publish_tf_, true);
+    pnh.param("pub_tf", publish_tf_, true);
 
     ROS_INFO_STREAM(
         "Basic Odometer Settings:"

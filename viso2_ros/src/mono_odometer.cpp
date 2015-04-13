@@ -15,7 +15,6 @@
 namespace viso2_ros {
 
 class MonoOdometer : public OdometerBase {
-
  private:
   boost::shared_ptr<VisualOdometryMono> visual_odometer_;
   VisualOdometryMono::parameters visual_odometer_params_;

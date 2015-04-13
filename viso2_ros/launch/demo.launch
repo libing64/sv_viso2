@@ -1,26 +1,44 @@
 <launch>
+  <!-- Arguments -->
+  <arg name="stereo" default="stereo"/>
+  <arg name="left" default="left"/>
+  <arg name="right" default="right"/>
+  <arg name="image" default="image_rect"/>
 
-    <!-- Arguments -->
-    <arg name="bagfile" default="bagfile.bag"/> <!-- Your bagfile here -->
-    <arg name="camera" default="/stereo" /> <!-- The namespace where images are published -->
-    <arg name="disparity_params" default="disparity_params.yaml"/> <!-- Camera calibration parameters -->
+  <arg name="bag_path" default="/media/chao/Seagate/bag/vicon1.bag"/>
+  <arg name="bag_start" default="0.0"/>
+  <arg name="bag_rate" default="1.0"/>
 
-    <param name="/use_sim_time" value="true"/>
+  <arg name="output" default="screen"/>
 
-    <!-- Run the rosbag -->
-    <node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile)"/>
+  <arg name="pub_tf" default="true"/>
+  <arg name="max_features" default="2"/>
+  <arg name="vis_matches" default="true"/>
+
+  <param name="/use_sim_time" value="true"/>
+
+  <!-- Run the rosbag -->
+  <node pkg="rosbag" type="play" name="player" output="$(arg output)"
+      args="-d 1 -s $(arg bag_start) -r $(arg bag_rate) $(arg bag_path)">
+  </node>
 
     <!-- Run the ROS package stereo_image_proc -->
-    <group ns="$(arg camera)" >
-        <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc">
-            <rosparam file="$(arg disparity_params)"/>
-        </node>
-    </group>
+  <node pkg="stereo_image_proc" type="stereo_image_proc"
+    name="stereo_image_proc" ns="$(arg stereo)">
+  </node>
 
     <!-- Run the viso2_ros package -->
-    <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen">
-        <remap from="stereo" to="$(arg camera)"/>
-        <remap from="image" to="image_rect"/>
-    </node>
-
+  <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer"
+    output="$(arg output)" ns="$(arg stereo)">
+    <param name="max_features" type="int" value="$(arg max_features)"/>
+    <param name="pub_tf" type="bool" value="$(arg pub_tf)"/>
+    <param name="vis_matches" type="bool" value="$(arg vis_matches)"/>
+    <param name="pub_pose" type="bool" value="true"/>
+    <param name="pub_odom" type="bool" value="true"/>
+    <remap from="~odometry" to="odom"/>
+    <remap from="~left" to="$(arg left)"/>
+    <remap from="~right" to="$(arg right)"/>
+    <remap from="~left/image" to="$(arg left)/$(arg image)"/>
+    <remap from="~right/image" to="$(arg right)/$(arg image)"/>
+  </node>
 </launch>

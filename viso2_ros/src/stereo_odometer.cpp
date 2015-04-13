@@ -32,7 +32,6 @@ static const boost::array<double, 36> BAD_COVARIANCE = {
      9999, 0, 0, 0, 0, 0, 0, 9999, 0, 0, 0, 0, 0, 0, 9999}};
 
 class StereoOdometer : public StereoProcessor, public OdometerBase {
-
  private:
   boost::shared_ptr<VisualOdometryStereo> visual_odometer_;
   VisualOdometryStereo::parameters visual_odometer_params_;
@@ -40,7 +39,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   ros::Publisher point_cloud_pub_;
   ros::Publisher info_pub_;
 
-  bool visualize_matches_;
+  bool vis_matches_;
   bool got_lost_;
 
   // change reference frame method. 0, 1 or 2. 0 means allways change. 1 and 2
@@ -69,7 +68,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     pnh.param("ref_frame_change_method", ref_frame_change_method_, 0);
     pnh.param("ref_frame_motion_threshold", ref_frame_motion_threshold_, 5.0);
     pnh.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_, 150);
-    pnh.param("visualize_matches", visualize_matches_, false);
+    pnh.param("vis_matches", vis_matches_, false);
 
     point_cloud_pub_ = pnh.advertise<PointCloud>("cloud2", 1);
     info_pub_ = pnh.advertise<VisoInfo>("info", 1);
@@ -98,19 +97,19 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         << "  ref_frame_change_method = " << ref_frame_change_method_
         << "\n  ref_frame_motion_threshold = " << ref_frame_motion_threshold_
         << "\n  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_
-        << "\n  visualize matches = " << std::boolalpha << visualize_matches_);
+        << "\n  visualize matches = " << std::boolalpha << vis_matches_);
   }
 
   void imageCallback(const sensor_msgs::ImageConstPtr& l_image_msg,
                      const sensor_msgs::ImageConstPtr& r_image_msg,
-                     const sensor_msgs::CameraInfoConstPtr& l_info_msg,
-                     const sensor_msgs::CameraInfoConstPtr& r_info_msg) {
+                     const sensor_msgs::CameraInfoConstPtr& l_cinfo_msg,
+                     const sensor_msgs::CameraInfoConstPtr& r_cinfo_msg) {
     ros::WallTime start_time = ros::WallTime::now();
     bool first_run = false;
     // create odometer if not exists
     if (!visual_odometer_) {
       first_run = true;
-      initOdometer(l_info_msg, r_info_msg);
+      initOdometer(l_cinfo_msg, r_cinfo_msg);
     }
 
     // convert images if necessary
@@ -178,12 +177,12 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         integrateAndPublish(delta_transform, l_image_msg->header.stamp);
 
         if (point_cloud_pub_.getNumSubscribers() > 0) {
-          computeAndPublishPointCloud(l_info_msg, l_image_msg, r_info_msg,
+          computeAndPublishPointCloud(l_cinfo_msg, l_image_msg, r_cinfo_msg,
                                       visual_odometer_->getMatches(),
                                       visual_odometer_->getInlierIndices());
         }
 
-        if (visualize_matches_) {
+        if (vis_matches_) {
           visualizeMatches(l_cv_ptr->image, visual_odometer_->getMatches(),
                            visual_odometer_->getInlierIndices(), start_time);
         }
@@ -200,7 +199,6 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
       }
 
       if (success) {
-
         // Proceed depending on the reference frame change method
         switch (ref_frame_change_method_) {
           case 1: {
@@ -326,8 +324,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
       }
       ROS_DEBUG("Publishing point cloud with %zu points.", point_cloud->size());
       point_cloud_pub_.publish(point_cloud);
-    }
-    catch (cv_bridge::Exception& e) {
+    } catch (cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
     }
   }

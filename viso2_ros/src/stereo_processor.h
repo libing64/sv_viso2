@@ -20,12 +20,11 @@ namespace viso2_ros {
  * To use this class, subclass it and implement the imageCallback() method.
  */
 class StereoProcessor {
-
  private:
   // subscriber
-  image_transport::SubscriberFilter left_image_sub_, right_image_sub_;
-  message_filters::Subscriber<sensor_msgs::CameraInfo> left_cinfo_sub_,
-      right_cinfo_sub_;
+  image_transport::SubscriberFilter l_image_sub_, r_image_sub_;
+  message_filters::Subscriber<sensor_msgs::CameraInfo> l_cinfo_sub_,
+      r_cinfo_sub_;
   typedef message_filters::sync_policies::ExactTime<
       sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo,
       sensor_msgs::CameraInfo> ExactPolicy;
@@ -40,8 +39,8 @@ class StereoProcessor {
 
   // for sync checking
   ros::WallTimer check_synced_timer_;
-  int left_image_received_, right_image_received_, left_cinfo_received_,
-      right_cinfo_received_, all_received_;
+  int l_image_received_, r_image_received_, l_cinfo_received_,
+      r_cinfo_received_, all_received_;
 
   // for sync checking
   static void increment(int* value) { ++(*value); }
@@ -50,7 +49,6 @@ class StereoProcessor {
               const sensor_msgs::ImageConstPtr& r_image_msg,
               const sensor_msgs::CameraInfoConstPtr& l_info_msg,
               const sensor_msgs::CameraInfoConstPtr& r_info_msg) {
-
     // For sync error checking
     ++all_received_;
 
@@ -60,10 +58,8 @@ class StereoProcessor {
 
   void checkInputsSynchronized() {
     int threshold = 3 * all_received_;
-    if (left_image_received_ >= threshold ||
-        right_image_received_ >= threshold ||
-        left_cinfo_received_ >= threshold ||
-        right_cinfo_received_ >= threshold) {
+    if (l_image_received_ >= threshold || r_image_received_ >= threshold ||
+        l_cinfo_received_ >= threshold || r_cinfo_received_ >= threshold) {
       ROS_WARN(
           "[stereo_processor] Low number of synchronized "
           "left/right/left_info/right_info tuples received.\n"
@@ -81,11 +77,11 @@ class StereoProcessor {
           "each tuple.\n"
           "\t  Try restarting the node, increasing parameter 'queue_size' "
           "(currently %d)",
-          left_image_received_, left_image_sub_.getTopic().c_str(),
-          right_image_received_, right_image_sub_.getTopic().c_str(),
-          left_cinfo_received_, left_cinfo_sub_.getTopic().c_str(),
-          right_cinfo_received_, right_cinfo_sub_.getTopic().c_str(),
-          all_received_, ros::this_node::getName().c_str(), queue_size_);
+          l_image_received_, l_image_sub_.getTopic().c_str(), r_image_received_,
+          r_image_sub_.getTopic().c_str(), l_cinfo_received_,
+          l_cinfo_sub_.getTopic().c_str(), r_cinfo_received_,
+          r_cinfo_sub_.getTopic().c_str(), all_received_,
+          ros::this_node::getName().c_str(), queue_size_);
     }
   }
 
@@ -96,45 +92,43 @@ class StereoProcessor {
    * \param transport The image transport to use
    */
   StereoProcessor(const std::string& transport)
-      : left_image_received_(0),
-        right_image_received_(0),
-        left_cinfo_received_(0),
-        right_cinfo_received_(0),
+      : l_image_received_(0),
+        r_image_received_(0),
+        l_cinfo_received_(0),
+        r_cinfo_received_(0),
         all_received_(0) {
     // Read local parameters
     ros::NodeHandle local_nh("~");
 
     // Resolve topic names
     ros::NodeHandle nh;
-    const std::string left_image_topic =
-        ros::names::append("left", "image_rect");
-    const std::string right_image_topic =
-        ros::names::append("right", "image_rect");
-    const std::string left_cinfo_topic =
-        ros::names::append("left", "camera_info");
-    const std::string right_cinfo_topic =
-        ros::names::append("right", "camera_info");
+    const std::string left = local_nh.resolveName("left");
+    const std::string right = local_nh.resolveName("right");
+    const std::string l_image_topic = local_nh.resolveName("left/image");
+    const std::string r_image_topic = local_nh.resolveName("right/image");
+    const std::string l_cinfo_topic = ros::names::append(left, "camera_info");
+    const std::string r_cinfo_topic = ros::names::append(right, "camera_info");
 
     // Subscribe to four input topics.
     ROS_INFO("Subscribing to:\n\t* %s\n\t* %s\n\t* %s\n\t* %s",
-             left_image_topic.c_str(), right_image_topic.c_str(),
-             left_cinfo_topic.c_str(), right_cinfo_topic.c_str());
+             l_image_topic.c_str(), r_image_topic.c_str(),
+             l_cinfo_topic.c_str(), r_cinfo_topic.c_str());
 
     image_transport::ImageTransport it(nh);
-    left_image_sub_.subscribe(it, left_image_topic, 1, transport);
-    right_image_sub_.subscribe(it, right_image_topic, 1, transport);
-    left_cinfo_sub_.subscribe(nh, left_cinfo_topic, 1);
-    right_cinfo_sub_.subscribe(nh, right_cinfo_topic, 1);
+    l_image_sub_.subscribe(it, l_image_topic, 1, transport);
+    r_image_sub_.subscribe(it, r_image_topic, 1, transport);
+    l_cinfo_sub_.subscribe(nh, l_cinfo_topic, 1);
+    r_cinfo_sub_.subscribe(nh, r_cinfo_topic, 1);
 
     // Complain every 15s if the topics appear unsynchronized
-    left_image_sub_.registerCallback(
-        boost::bind(StereoProcessor::increment, &left_image_received_));
-    right_image_sub_.registerCallback(
-        boost::bind(StereoProcessor::increment, &right_image_received_));
-    left_cinfo_sub_.registerCallback(
-        boost::bind(StereoProcessor::increment, &left_cinfo_received_));
-    right_cinfo_sub_.registerCallback(
-        boost::bind(StereoProcessor::increment, &right_cinfo_received_));
+    l_image_sub_.registerCallback(
+        boost::bind(StereoProcessor::increment, &l_image_received_));
+    r_image_sub_.registerCallback(
+        boost::bind(StereoProcessor::increment, &r_image_received_));
+    l_cinfo_sub_.registerCallback(
+        boost::bind(StereoProcessor::increment, &l_cinfo_received_));
+    r_cinfo_sub_.registerCallback(
+        boost::bind(StereoProcessor::increment, &r_cinfo_received_));
     check_synced_timer_ = nh.createWallTimer(
         ros::WallDuration(15.0),
         boost::bind(&StereoProcessor::checkInputsSynchronized, this));
@@ -144,15 +138,15 @@ class StereoProcessor {
     bool approx;
     local_nh.param("approximate_sync", approx, false);
     if (approx) {
-      approximate_sync_.reset(new ApproximateSync(
-          ApproximatePolicy(queue_size_), left_image_sub_, right_image_sub_,
-          left_cinfo_sub_, right_cinfo_sub_));
+      approximate_sync_.reset(
+          new ApproximateSync(ApproximatePolicy(queue_size_), l_image_sub_,
+                              r_image_sub_, l_cinfo_sub_, r_cinfo_sub_));
       approximate_sync_->registerCallback(
           boost::bind(&StereoProcessor::dataCb, this, _1, _2, _3, _4));
     } else {
-      exact_sync_.reset(new ExactSync(ExactPolicy(queue_size_), left_image_sub_,
-                                      right_image_sub_, left_cinfo_sub_,
-                                      right_cinfo_sub_));
+      exact_sync_.reset(new ExactSync(ExactPolicy(queue_size_), l_image_sub_,
+                                      r_image_sub_, l_cinfo_sub_,
+                                      r_cinfo_sub_));
       exact_sync_->registerCallback(
           boost::bind(&StereoProcessor::dataCb, this, _1, _2, _3, _4));
     }
@@ -164,8 +158,8 @@ class StereoProcessor {
   virtual void imageCallback(
       const sensor_msgs::ImageConstPtr& l_image_msg,
       const sensor_msgs::ImageConstPtr& r_image_msg,
-      const sensor_msgs::CameraInfoConstPtr& l_info_msg,
-      const sensor_msgs::CameraInfoConstPtr& r_info_msg) = 0;
+      const sensor_msgs::CameraInfoConstPtr& l_cinfo_msg,
+      const sensor_msgs::CameraInfoConstPtr& r_cinfo_msg) = 0;
 };
 
 }  // end of namespace

@@ -38,7 +38,10 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   boost::shared_ptr<VisualOdometryStereo> visual_odometer_;
   VisualOdometryStereo::parameters visual_odometer_params_;
 
+  ros::NodeHandle pnh_;
   ros::Publisher point_cloud_pub_;
+  image_transport::ImageTransport it_;
+  image_transport::Publisher pub_matches_;
   ros::Publisher info_pub_;
 
   bool vis_matches_;
@@ -61,19 +64,24 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   explicit StereoOdometer(const std::string& transport)
       : StereoProcessor(transport),
         OdometerBase(),
+        pnh_("~"),
+        it_(pnh_),
         got_lost_(false),
         change_reference_frame_(false) {
     // Read local parameters
-    ros::NodeHandle pnh("~");
-    odometry_params::loadParams(pnh, visual_odometer_params_);
+    odometry_params::loadParams(pnh_, visual_odometer_params_);
 
-    pnh.param("ref_frame_change_method", ref_frame_change_method_, 0);
-    pnh.param("ref_frame_motion_threshold", ref_frame_motion_threshold_, 5.0);
-    pnh.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_, 150);
-    pnh.param("vis_matches", vis_matches_, false);
+    pnh_.param("ref_frame_change_method", ref_frame_change_method_, 0);
+    pnh_.param("ref_frame_motion_threshold", ref_frame_motion_threshold_, 5.0);
+    pnh_.param("ref_frame_inlier_threshold", ref_frame_inlier_threshold_, 150);
+    pnh_.param("vis_matches", vis_matches_, false);
 
-    point_cloud_pub_ = pnh.advertise<PointCloud>("cloud2", 1);
-    info_pub_ = pnh.advertise<VisoInfo>("info", 1);
+    point_cloud_pub_ = pnh_.advertise<PointCloud>("cloud2", 1);
+    info_pub_ = pnh_.advertise<VisoInfo>("info", 1);
+
+    if (vis_matches_) {
+      pub_matches_ = it_.advertise("image_matches", 1);
+    }
 
     reference_motion_ = Matrix::eye(4);
   }
@@ -183,9 +191,12 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
                                       visual_odometer_->getInlierIndices());
         }
 
-        if (vis_matches_) {
+        if (vis_matches_ && pub_matches_.getNumSubscribers()) {
           visualizeMatches(l_cv_ptr->image, visual_odometer_->getMatches(),
                            visual_odometer_->getInlierIndices(), start_time);
+          cv_bridge::CvImage cv_img(l_cv_ptr->header, image_encodings::BGR8,
+                                    display_);
+          pub_matches_.publish(cv_img.toImageMsg());
         }
       } else {
         setPoseCovariance(BAD_COVARIANCE);
@@ -257,12 +268,6 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
                         const std::vector<int32_t>& inlier_indices,
                         const ros::WallTime& start_time) {
     const auto n_rows = l_image.rows;
-    if (display_.empty()) {
-      cv::namedWindow("matches",
-                      CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
-      cv::setWindowProperty("matches", CV_WND_PROP_FULLSCREEN,
-                            CV_WINDOW_FULLSCREEN);
-    }
     // Convert grayscale to color and blend
     cv::cvtColor(l_image, display_, CV_GRAY2BGR);
 
@@ -281,9 +286,6 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     cv::putText(display_, std::to_string(inlier_indices.size()),
                 cv::Point2f(15, n_rows - 20), cv::FONT_HERSHEY_SIMPLEX, 1,
                 CV_RGB(0, 255, 255), 2, CV_AA);
-    // Display image
-    cv::imshow("matches", display_);
-    cv::waitKey(1);
   }
 
   void computeAndPublishPointCloud(const CameraInfoConstPtr& l_info_msg,

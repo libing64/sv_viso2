@@ -16,7 +16,7 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
 libviso2; if not, write to the Free Software Foundation, Inc., 51 Franklin
-Street, Fifth Floor, Boston, MA 02110-1301, USA 
+Street, Fifth Floor, Boston, MA 02110-1301, USA
 */
 
 #ifndef __TIMER_H__
@@ -33,28 +33,25 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include <stdint.h>
 
 class Timer {
-  
-public:
-  
+ public:
   Timer() {}
-  
+
   ~Timer() {}
-  
-  void start (std::string title) {
+
+  void start(std::string title) {
     desc.push_back(title);
     push_back_time();
   }
-  
-  void stop () {
-    if (time.size()<=desc.size())
-      push_back_time();
+
+  void stop() {
+    if (time.size() <= desc.size()) push_back_time();
   }
-  
-  void plot () {
+
+  void plot() {
     stop();
     float total_time = 0;
-    for (int32_t i=0; i<(int32_t)desc.size(); i++) {
-      float curr_time = getTimeDifferenceMilliseconds(time[i],time[i+1]);
+    for (int32_t i = 0; i < (int32_t)desc.size(); i++) {
+      float curr_time = getTimeDifferenceMilliseconds(time[i], time[i + 1]);
       total_time += curr_time;
       std::cout.width(30);
       std::cout << desc[i] << " ";
@@ -68,25 +65,25 @@ public:
     std::cout << total_time;
     std::cout << " ms" << std::endl << std::endl;
   }
-  
-  void reset () {
+
+  void reset() {
     desc.clear();
     time.clear();
   }
-  
-private:
-  std::vector<std::string>  desc;
-  std::vector<timeval>      time;
-  
-  void push_back_time () {
+
+ private:
+  std::vector<std::string> desc;
+  std::vector<timeval> time;
+
+  void push_back_time() {
     timeval curr_time;
-    gettimeofday(&curr_time,0);
+    gettimeofday(&curr_time, 0);
     time.push_back(curr_time);
   }
-  
-  float getTimeDifferenceMilliseconds(timeval a,timeval b) {
-    return ((float)(b.tv_sec -a.tv_sec ))*1e+3 +
-           ((float)(b.tv_usec-a.tv_usec))*1e-3;
+
+  float getTimeDifferenceMilliseconds(timeval a, timeval b) {
+    return ((float)(b.tv_sec - a.tv_sec)) * 1e+3 +
+           ((float)(b.tv_usec - a.tv_usec)) * 1e-3;
   }
 };
 

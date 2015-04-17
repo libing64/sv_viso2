@@ -4,7 +4,7 @@
   <arg name="right" default="right"/>
   <arg name="image" default="image_rect"/>
 
-  <arg name="pub_tf" default="false"/>
+  <arg name="pub_tf" default="true"/>
   <arg name="vis_matches" default="true"/>
 
   <arg name="output" default="screen"/>
@@ -23,6 +23,7 @@
     <remap from="~right" to="$(arg right)"/>
     <remap from="~left/image" to="$(arg left)/$(arg image)"/>
     <remap from="~right/image" to="$(arg right)/$(arg image)"/>
+
     <remap from="~odometry" to="/viso2/odom"/>
     <remap from="~pose" to="/viso2/pose"/>
     <remap from="~cloud2" to="/viso2/cloud2"/>

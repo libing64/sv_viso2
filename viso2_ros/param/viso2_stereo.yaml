@@ -4,5 +4,5 @@ max_features: 2
   # method 1. Change the reference frame if last motion is small
   # method 2. Change the reference frame if the number of inliers is low
 ref_frame_change_method: 1
-ref_frame_motion_threshold: 5.0
+ref_frame_motion_threshold: 2.0
 ref_frame_inlier_threshold: 150

@@ -8,7 +8,7 @@
     a CMakeFile for easier integration into the ROS build system.
 
     Please note that this code is licensed under GPL. For a commercial usage, please
-    contact Andreas Geiger directly (see 
+    contact Andreas Geiger directly (see
     <a href="http://www.cvlibs.net/software/libviso2.html">http://www.cvlibs.net/software/libviso2.html</a>).
   </description>
 

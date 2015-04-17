@@ -35,8 +35,8 @@ static const boost::array<double, 36> BAD_COVARIANCE = {
 
 class StereoOdometer : public StereoProcessor, public OdometerBase {
  private:
-  boost::shared_ptr<VisualOdometryStereo> visual_odometer_;
-  VisualOdometryStereo::parameters visual_odometer_params_;
+  boost::shared_ptr<VisualOdometryStereo> stereo_odometer_;
+  VisualOdometryStereo::parameters stereo_odometer_params_;
 
   ros::NodeHandle pnh_;
   ros::Publisher point_cloud_pub_;
@@ -51,10 +51,10 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
   // explained below
   int ref_frame_change_method_;
   bool change_reference_frame_;
-  double ref_frame_motion_threshold_;  // method 1. Change the reference frame
-                                       // if last motion is small
-  int ref_frame_inlier_threshold_;  // method 2. Change the reference frame if
-                                    // the number of inliers is low
+  // method 1. Change the reference frame if last motion is small
+  // method 2. Change the reference frame if the number of inliers is low
+  double ref_frame_motion_threshold_;
+  int ref_frame_inlier_threshold_;
   Matrix reference_motion_;
   cv::Mat display_;
 
@@ -69,7 +69,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         got_lost_(false),
         change_reference_frame_(false) {
     // Read local parameters
-    odometry_params::loadParams(pnh_, visual_odometer_params_);
+    odometry_params::loadParams(pnh_, stereo_odometer_params_);
 
     pnh_.param("ref_frame_change_method", ref_frame_change_method_, 0);
     pnh_.param("ref_frame_motion_threshold", ref_frame_motion_threshold_, 5.0);
@@ -80,7 +80,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     info_pub_ = pnh_.advertise<VisoInfo>("info", 1);
 
     if (vis_matches_) {
-      pub_matches_ = it_.advertise("image_matches", 1);
+      pub_matches_ = it_.advertise("image_output", 1);
     }
 
     reference_motion_ = Matrix::eye(4);
@@ -94,17 +94,17 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     // to fill remaining parameters
     image_geometry::StereoCameraModel model;
     model.fromCameraInfo(l_info_msg, r_info_msg);
-    visual_odometer_params_.base = model.baseline();
-    visual_odometer_params_.calib.f = model.left().fx();
-    visual_odometer_params_.calib.cu = model.left().cx();
-    visual_odometer_params_.calib.cv = model.left().cy();
-    visual_odometer_.reset(new VisualOdometryStereo(visual_odometer_params_));
+    stereo_odometer_params_.base = model.baseline();
+    stereo_odometer_params_.calib.f = model.left().fx();
+    stereo_odometer_params_.calib.cu = model.left().cx();
+    stereo_odometer_params_.calib.cv = model.left().cy();
+    stereo_odometer_.reset(new VisualOdometryStereo(stereo_odometer_params_));
     if (l_info_msg->header.frame_id != "")
       setSensorFrameId(l_info_msg->header.frame_id);
     ROS_INFO_STREAM(
         "Initialized libviso2 stereo odometry "
         "with the following parameters:\n"
-        << visual_odometer_params_
+        << stereo_odometer_params_
         << "  ref_frame_change_method = " << ref_frame_change_method_
         << "\n  ref_frame_motion_threshold = " << ref_frame_motion_threshold_
         << "\n  ref_frame_inlier_threshold = " << ref_frame_inlier_threshold_
@@ -118,7 +118,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     ros::WallTime start_time = ros::WallTime::now();
     bool first_run = false;
     // create odometer if not exists
-    if (!visual_odometer_) {
+    if (!stereo_odometer_) {
       first_run = true;
       initOdometer(l_cinfo_msg, r_cinfo_msg);
     }
@@ -143,7 +143,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
     // on first run or when odometer got lost, only feed the odometer with
     // images without retrieving data
     if (first_run || got_lost_) {
-      visual_odometer_->process(l_image_data, r_image_data, dims);
+      stereo_odometer_->process(l_image_data, r_image_data, dims);
       got_lost_ = false;
       // on first run publish zero once
       if (first_run) {
@@ -152,13 +152,13 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
         integrateAndPublish(delta_transform, l_image_msg->header.stamp);
       }
     } else {
-      bool success = visual_odometer_->process(l_image_data, r_image_data, dims,
+      bool success = stereo_odometer_->process(l_image_data, r_image_data, dims,
                                                change_reference_frame_);
       if (success) {
-        Matrix motion = Matrix::inv(visual_odometer_->getMotion());
+        Matrix motion = Matrix::inv(stereo_odometer_->getMotion());
         ROS_DEBUG("Found %i matches with %i inliers.",
-                  visual_odometer_->getNumberOfMatches(),
-                  visual_odometer_->getNumberOfInliers());
+                  stereo_odometer_->getNumberOfMatches(),
+                  stereo_odometer_->getNumberOfInliers());
         ROS_DEBUG_STREAM("libviso2 returned the following motion:\n" << motion);
         Matrix camera_motion;
         // if image was replaced due to small motion we have to subtract the
@@ -187,13 +187,13 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
 
         if (point_cloud_pub_.getNumSubscribers() > 0) {
           computeAndPublishPointCloud(l_cinfo_msg, l_image_msg, r_cinfo_msg,
-                                      visual_odometer_->getMatches(),
-                                      visual_odometer_->getInlierIndices());
+                                      stereo_odometer_->getMatches(),
+                                      stereo_odometer_->getInlierIndices());
         }
 
         if (vis_matches_ && pub_matches_.getNumSubscribers()) {
-          visualizeMatches(l_cv_ptr->image, visual_odometer_->getMatches(),
-                           visual_odometer_->getInlierIndices(), start_time);
+          visualizeMatches(l_cv_ptr->image, stereo_odometer_->getMatches(),
+                           stereo_odometer_->getInlierIndices(), start_time);
           cv_bridge::CvImage cv_img(l_cv_ptr->header, image_encodings::BGR8,
                                     display_);
           pub_matches_.publish(cv_img.toImageMsg());
@@ -216,7 +216,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
           case 1: {
             // calculate current feature flow
             double feature_flow =
-                computeFeatureFlow(visual_odometer_->getMatches());
+                computeFeatureFlow(stereo_odometer_->getMatches());
             change_reference_frame_ =
                 (feature_flow < ref_frame_motion_threshold_);
             ROS_DEBUG_STREAM(
@@ -226,7 +226,7 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
             break;
           }
           case 2: {
-            change_reference_frame_ = (visual_odometer_->getNumberOfInliers() >
+            change_reference_frame_ = (stereo_odometer_->getNumberOfInliers() >
                                        ref_frame_inlier_threshold_);
             break;
           }
@@ -245,8 +245,8 @@ class StereoOdometer : public StereoProcessor, public OdometerBase {
       info_msg.header.stamp = l_image_msg->header.stamp;
       info_msg.got_lost = !success;
       info_msg.change_reference_frame = !change_reference_frame_;
-      info_msg.num_matches = visual_odometer_->getNumberOfMatches();
-      info_msg.num_inliers = visual_odometer_->getNumberOfInliers();
+      info_msg.num_matches = stereo_odometer_->getNumberOfMatches();
+      info_msg.num_inliers = stereo_odometer_->getNumberOfInliers();
       ros::WallDuration time_elapsed = ros::WallTime::now() - start_time;
       info_msg.runtime = time_elapsed.toSec();
       info_pub_.publish(info_msg);

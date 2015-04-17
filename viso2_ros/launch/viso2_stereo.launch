@@ -5,25 +5,27 @@
   <arg name="image" default="image_rect"/>
 
   <arg name="pub_tf" default="false"/>
-  <arg name="max_features" default="2"/>
   <arg name="vis_matches" default="true"/>
 
   <arg name="output" default="screen"/>
 
-  <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer"
+  <node pkg="viso2_ros" type="stereo_odometer" name="viso2_stereo_odometer"
     output="$(arg output)" ns="$(arg stereo)">
     <param name="odom_frame_id" type="string" value="world"/>
-    <param name="max_features" type="int" value="$(arg max_features)"/>
     <param name="pub_tf" type="bool" value="$(arg pub_tf)"/>
     <param name="vis_matches" type="bool" value="$(arg vis_matches)"/>
     <param name="pub_pose" type="bool" value="true"/>
     <param name="pub_odom" type="bool" value="true"/>
+    <rosparam command="load" file="$(find viso2_ros)/param/viso2_stereo.yaml"/>
 
-    <remap from="~odometry" to="odom"/>
-    <remap from="~pose" to="pose"/>
+    <!-- remapping -->
     <remap from="~left" to="$(arg left)"/>
     <remap from="~right" to="$(arg right)"/>
     <remap from="~left/image" to="$(arg left)/$(arg image)"/>
     <remap from="~right/image" to="$(arg right)/$(arg image)"/>
+    <remap from="~odometry" to="/viso2/odom"/>
+    <remap from="~pose" to="/viso2/pose"/>
+    <remap from="~cloud2" to="/viso2/cloud2"/>
+    <remap from="~image_output" to="/viso2/image_output"/>
   </node>
 </launch>

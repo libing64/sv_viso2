@@ -5,7 +5,7 @@
   <arg name="right" default="right"/>
   <arg name="image" default="image_rect"/>
 
-  <arg name="bag_path" default="/media/chao/Seagate/bag/vicon1.bag"/>
+  <arg name="bag_path" default="/media/chao/Seagate/bag/vicon/vicon_loop2.bag"/>
   <arg name="bag_start" default="0.0"/>
   <arg name="bag_rate" default="1.0"/>
 
@@ -13,22 +13,26 @@
 
   <param name="/use_sim_time" value="true"/>
 
-  <!-- Run the rosbag -->
+  <!-- rosbag -->
   <node pkg="rosbag" type="play" name="player" output="$(arg output)"
-      args="-d 1 -s $(arg bag_start) -r $(arg bag_rate) $(arg bag_path)">
+    args="-d 1 -s $(arg bag_start) -r $(arg bag_rate) $(arg bag_path)">
   </node>
 
-    <!-- Run the ROS package stereo_image_proc -->
+  <!-- rviz -->
+  <node pkg="rviz" type="rviz" name="rviz" output="log"
+    args="-d $(find viso2_ros)/rviz/viso2_stereo.rviz">
+  </node>
+
+  <!-- image_proc -->
   <node pkg="stereo_image_proc" type="stereo_image_proc"
     name="stereo_image_proc" ns="$(arg stereo)">
   </node>
 
-  <!-- Run the viso2_ros package -->
-  <include file="$(find viso2_ros)/launch/stereo_odometer.launch">
+  <!-- viso2_stereo_odometer -->
+  <include file="$(find viso2_ros)/launch/viso2_stereo.launch">
     <arg name="stereo" value="$(arg stereo)"/>
     <arg name="left" value="$(arg left)"/>
     <arg name="right" value="$(arg right)"/>
     <arg name="image" value="$(arg image)"/>
-    <arg name="output" value="$(arg output)"/>
   </include>
 </launch>

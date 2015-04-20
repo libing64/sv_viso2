@@ -9,15 +9,10 @@
 
   <license>GPL</license>
 
-  <url type="website">http://ros.org/wiki/viso2</url>
-  <url type="bugtracker">https://github.com/srv/viso2/issues</url>
-
   <author email="stephan.wirth@uib.es">Stephan Wirth</author>
-  <maintainer email="stephan.wirth@uib.es">Stephan Wirth</maintainer>
+  <maintainer email="quchao@seas.upenn.edu">Chao Qu</maintainer>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <run_depend>libviso2</run_depend>
-  <run_depend>viso2_ros</run_depend>
 
   <export>
     <metapackage/>

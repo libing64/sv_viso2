@@ -4,11 +4,10 @@
   <arg name="left" default="left"/>
   <arg name="right" default="right"/>
   <arg name="image" default="image_rect"/>
-
   <arg name="bag_path" default="/home/libing/rosbag/stereo_data/kitti_03.bag"/>
+
   <arg name="bag_start" default="0.0"/>
   <arg name="bag_rate" default="1.0"/>
-
   <arg name="output" default="screen"/>
 
   <param name="/use_sim_time" value="true"/>
@@ -23,10 +22,11 @@
     args="-d $(find viso2_ros)/rviz/viso2_stereo.rviz">
   </node>
 
-  <!-- image_proc -->
+    <!-- image_proc -->
   <node pkg="stereo_image_proc" type="stereo_image_proc"
     name="stereo_image_proc" ns="$(arg stereo)">
   </node>
+
 
   <!-- viso2_stereo_odometer -->
   <include file="$(find viso2_ros)/launch/viso2_stereo.launch">

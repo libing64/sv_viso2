@@ -1,11 +1,11 @@
 <launch>
   <!-- Arguments -->
-  <arg name="stereo" default="stereo"/>
+  <arg name="stereo" default="/kitti_stereo"/>
   <arg name="left" default="left"/>
   <arg name="right" default="right"/>
   <arg name="image" default="image_rect"/>
 
-  <arg name="bag_path" default="/media/chao/Seagate/bag/vicon/vicon_loop2.bag"/>
+  <arg name="bag_path" default="/home/libing/rosbag/stereo_data/kitti_03.bag"/>
   <arg name="bag_start" default="0.0"/>
   <arg name="bag_rate" default="1.0"/>
 

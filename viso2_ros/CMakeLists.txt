@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(viso2_ros)
 
+
+set(CMAKE_BUILD_TYPE "release")
+
 add_definitions(-Wall -std=c++11)
 find_package(catkin REQUIRED COMPONENTS
     libviso2
